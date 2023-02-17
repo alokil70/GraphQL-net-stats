@@ -1,0 +1,25 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+
+type Iface {
+  name: String!
+  TX_sec: String!
+  RX_sec: String!
+  TX: String!
+  RX: String!
+}
+
+type Query {
+  ifaces: [Iface!]!
+}
+
+input NewIface {
+  text: String!
+  userId: String!
+}
+
+type Mutation {
+  createIface(input: NewIface!): Iface!
+}
