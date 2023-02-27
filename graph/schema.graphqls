@@ -2,24 +2,24 @@
 #
 # https://gqlgen.com/getting-started/
 
+# UInt64 add custom scalarsscalar Uint
+scalar Uint64
+# scalar Uint32
 
-type Iface {
-  name: String!
-  TX_sec: String!
-  RX_sec: String!
-  TX: String!
-  RX: String!
+# scalar Int
+# scalar Int64
+# scalar Int32
+
+type NetIFMetrics
+{
+  ifname:      String!
+  rxBytes:     Uint64!
+  txBytes:     Uint64!
+  rxBytesPSec: Uint64!
+  txBytesPSec: Uint64!
 }
 
-type Query {
-  ifaces: [Iface!]!
-}
-
-input NewIface {
-  text: String!
-  userId: String!
-}
-
-type Mutation {
-  createIface(input: NewIface!): Iface!
+type Query
+{
+  NetIFMetrics: [NetIFMetrics!]!
 }

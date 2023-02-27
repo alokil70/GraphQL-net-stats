@@ -36,7 +36,6 @@ type Config struct {
 }
 
 type ResolverRoot interface {
-	Mutation() MutationResolver
 	Query() QueryResolver
 }
 
@@ -44,28 +43,21 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
-	Iface struct {
-		Name  func(childComplexity int) int
-		Rx    func(childComplexity int) int
-		RxSec func(childComplexity int) int
-		Tx    func(childComplexity int) int
-		TxSec func(childComplexity int) int
-	}
-
-	Mutation struct {
-		CreateIface func(childComplexity int, input model.NewIface) int
+	NetIFMetrics struct {
+		Ifname      func(childComplexity int) int
+		RxBytes     func(childComplexity int) int
+		RxBytesPSec func(childComplexity int) int
+		TxBytes     func(childComplexity int) int
+		TxBytesPSec func(childComplexity int) int
 	}
 
 	Query struct {
-		Ifaces func(childComplexity int) int
+		NetIFMetrics func(childComplexity int) int
 	}
 }
 
-type MutationResolver interface {
-	CreateIface(ctx context.Context, input model.NewIface) (*model.Iface, error)
-}
 type QueryResolver interface {
-	Ifaces(ctx context.Context) ([]*model.Iface, error)
+	NetIFMetrics(ctx context.Context) ([]*model.NetIFMetrics, error)
 }
 
 type executableSchema struct {
@@ -83,59 +75,47 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	_ = ec
 	switch typeName + "." + field {
 
-	case "Iface.name":
-		if e.complexity.Iface.Name == nil {
+	case "NetIFMetrics.ifname":
+		if e.complexity.NetIFMetrics.Ifname == nil {
 			break
 		}
 
-		return e.complexity.Iface.Name(childComplexity), true
+		return e.complexity.NetIFMetrics.Ifname(childComplexity), true
 
-	case "Iface.RX":
-		if e.complexity.Iface.Rx == nil {
+	case "NetIFMetrics.rxBytes":
+		if e.complexity.NetIFMetrics.RxBytes == nil {
 			break
 		}
 
-		return e.complexity.Iface.Rx(childComplexity), true
+		return e.complexity.NetIFMetrics.RxBytes(childComplexity), true
 
-	case "Iface.RX_sec":
-		if e.complexity.Iface.RxSec == nil {
+	case "NetIFMetrics.rxBytesPSec":
+		if e.complexity.NetIFMetrics.RxBytesPSec == nil {
 			break
 		}
 
-		return e.complexity.Iface.RxSec(childComplexity), true
+		return e.complexity.NetIFMetrics.RxBytesPSec(childComplexity), true
 
-	case "Iface.TX":
-		if e.complexity.Iface.Tx == nil {
+	case "NetIFMetrics.txBytes":
+		if e.complexity.NetIFMetrics.TxBytes == nil {
 			break
 		}
 
-		return e.complexity.Iface.Tx(childComplexity), true
+		return e.complexity.NetIFMetrics.TxBytes(childComplexity), true
 
-	case "Iface.TX_sec":
-		if e.complexity.Iface.TxSec == nil {
+	case "NetIFMetrics.txBytesPSec":
+		if e.complexity.NetIFMetrics.TxBytesPSec == nil {
 			break
 		}
 
-		return e.complexity.Iface.TxSec(childComplexity), true
+		return e.complexity.NetIFMetrics.TxBytesPSec(childComplexity), true
 
-	case "Mutation.createIface":
-		if e.complexity.Mutation.CreateIface == nil {
+	case "Query.NetIFMetrics":
+		if e.complexity.Query.NetIFMetrics == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_createIface_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.CreateIface(childComplexity, args["input"].(model.NewIface)), true
-
-	case "Query.ifaces":
-		if e.complexity.Query.Ifaces == nil {
-			break
-		}
-
-		return e.complexity.Query.Ifaces(childComplexity), true
+		return e.complexity.Query.NetIFMetrics(childComplexity), true
 
 	}
 	return 0, false
@@ -144,9 +124,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	rc := graphql.GetOperationContext(ctx)
 	ec := executionContext{rc, e}
-	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
-		ec.unmarshalInputNewIface,
-	)
+	inputUnmarshalMap := graphql.BuildUnmarshalerMap()
 	first := true
 
 	switch rc.Operation.Operation {
@@ -158,21 +136,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 			first = false
 			ctx = graphql.WithUnmarshalerMap(ctx, inputUnmarshalMap)
 			data := ec._Query(ctx, rc.Operation.SelectionSet)
-			var buf bytes.Buffer
-			data.MarshalGQL(&buf)
-
-			return &graphql.Response{
-				Data: buf.Bytes(),
-			}
-		}
-	case ast.Mutation:
-		return func(ctx context.Context) *graphql.Response {
-			if !first {
-				return nil
-			}
-			first = false
-			ctx = graphql.WithUnmarshalerMap(ctx, inputUnmarshalMap)
-			data := ec._Mutation(ctx, rc.Operation.SelectionSet)
 			var buf bytes.Buffer
 			data.MarshalGQL(&buf)
 
@@ -224,21 +187,6 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
-
-func (ec *executionContext) field_Mutation_createIface_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.NewIface
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNNewIface2testᚋgraphᚋmodelᚐNewIface(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
 
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -293,8 +241,8 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
-func (ec *executionContext) _Iface_name(ctx context.Context, field graphql.CollectedField, obj *model.Iface) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Iface_name(ctx, field)
+func (ec *executionContext) _NetIFMetrics_ifname(ctx context.Context, field graphql.CollectedField, obj *model.NetIFMetrics) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NetIFMetrics_ifname(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -307,7 +255,7 @@ func (ec *executionContext) _Iface_name(ctx context.Context, field graphql.Colle
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
+		return obj.Ifname, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -324,9 +272,9 @@ func (ec *executionContext) _Iface_name(ctx context.Context, field graphql.Colle
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Iface_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_NetIFMetrics_ifname(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Iface",
+		Object:     "NetIFMetrics",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -337,8 +285,8 @@ func (ec *executionContext) fieldContext_Iface_name(ctx context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _Iface_TX_sec(ctx context.Context, field graphql.CollectedField, obj *model.Iface) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Iface_TX_sec(ctx, field)
+func (ec *executionContext) _NetIFMetrics_rxBytes(ctx context.Context, field graphql.CollectedField, obj *model.NetIFMetrics) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NetIFMetrics_rxBytes(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -351,7 +299,7 @@ func (ec *executionContext) _Iface_TX_sec(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.TxSec, nil
+		return obj.RxBytes, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -363,26 +311,26 @@ func (ec *executionContext) _Iface_TX_sec(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(uint64)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNUint642uint64(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Iface_TX_sec(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_NetIFMetrics_rxBytes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Iface",
+		Object:     "NetIFMetrics",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Uint64 does not have child fields")
 		},
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Iface_RX_sec(ctx context.Context, field graphql.CollectedField, obj *model.Iface) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Iface_RX_sec(ctx, field)
+func (ec *executionContext) _NetIFMetrics_txBytes(ctx context.Context, field graphql.CollectedField, obj *model.NetIFMetrics) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NetIFMetrics_txBytes(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -395,7 +343,7 @@ func (ec *executionContext) _Iface_RX_sec(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.RxSec, nil
+		return obj.TxBytes, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -407,26 +355,26 @@ func (ec *executionContext) _Iface_RX_sec(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(uint64)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNUint642uint64(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Iface_RX_sec(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_NetIFMetrics_txBytes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Iface",
+		Object:     "NetIFMetrics",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Uint64 does not have child fields")
 		},
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Iface_TX(ctx context.Context, field graphql.CollectedField, obj *model.Iface) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Iface_TX(ctx, field)
+func (ec *executionContext) _NetIFMetrics_rxBytesPSec(ctx context.Context, field graphql.CollectedField, obj *model.NetIFMetrics) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NetIFMetrics_rxBytesPSec(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -439,7 +387,7 @@ func (ec *executionContext) _Iface_TX(ctx context.Context, field graphql.Collect
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Tx, nil
+		return obj.RxBytesPSec, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -451,26 +399,26 @@ func (ec *executionContext) _Iface_TX(ctx context.Context, field graphql.Collect
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(uint64)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNUint642uint64(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Iface_TX(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_NetIFMetrics_rxBytesPSec(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Iface",
+		Object:     "NetIFMetrics",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Uint64 does not have child fields")
 		},
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Iface_RX(ctx context.Context, field graphql.CollectedField, obj *model.Iface) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Iface_RX(ctx, field)
+func (ec *executionContext) _NetIFMetrics_txBytesPSec(ctx context.Context, field graphql.CollectedField, obj *model.NetIFMetrics) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NetIFMetrics_txBytesPSec(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -483,7 +431,7 @@ func (ec *executionContext) _Iface_RX(ctx context.Context, field graphql.Collect
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Rx, nil
+		return obj.TxBytesPSec, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -495,26 +443,26 @@ func (ec *executionContext) _Iface_RX(ctx context.Context, field graphql.Collect
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(uint64)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNUint642uint64(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Iface_RX(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_NetIFMetrics_txBytesPSec(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Iface",
+		Object:     "NetIFMetrics",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Uint64 does not have child fields")
 		},
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_createIface(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_createIface(ctx, field)
+func (ec *executionContext) _Query_NetIFMetrics(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_NetIFMetrics(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -527,7 +475,7 @@ func (ec *executionContext) _Mutation_createIface(ctx context.Context, field gra
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateIface(rctx, fc.Args["input"].(model.NewIface))
+		return ec.resolvers.Query().NetIFMetrics(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -538,78 +486,12 @@ func (ec *executionContext) _Mutation_createIface(ctx context.Context, field gra
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Iface)
+	res := resTmp.([]*model.NetIFMetrics)
 	fc.Result = res
-	return ec.marshalNIface2ᚖtestᚋgraphᚋmodelᚐIface(ctx, field.Selections, res)
+	return ec.marshalNNetIFMetrics2ᚕᚖtestᚋgraphᚋmodelᚐNetIFMetricsᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_createIface(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "name":
-				return ec.fieldContext_Iface_name(ctx, field)
-			case "TX_sec":
-				return ec.fieldContext_Iface_TX_sec(ctx, field)
-			case "RX_sec":
-				return ec.fieldContext_Iface_RX_sec(ctx, field)
-			case "TX":
-				return ec.fieldContext_Iface_TX(ctx, field)
-			case "RX":
-				return ec.fieldContext_Iface_RX(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Iface", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_createIface_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_ifaces(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_ifaces(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Ifaces(rctx)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Iface)
-	fc.Result = res
-	return ec.marshalNIface2ᚕᚖtestᚋgraphᚋmodelᚐIfaceᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Query_ifaces(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_NetIFMetrics(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -617,18 +499,18 @@ func (ec *executionContext) fieldContext_Query_ifaces(ctx context.Context, field
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "name":
-				return ec.fieldContext_Iface_name(ctx, field)
-			case "TX_sec":
-				return ec.fieldContext_Iface_TX_sec(ctx, field)
-			case "RX_sec":
-				return ec.fieldContext_Iface_RX_sec(ctx, field)
-			case "TX":
-				return ec.fieldContext_Iface_TX(ctx, field)
-			case "RX":
-				return ec.fieldContext_Iface_RX(ctx, field)
+			case "ifname":
+				return ec.fieldContext_NetIFMetrics_ifname(ctx, field)
+			case "rxBytes":
+				return ec.fieldContext_NetIFMetrics_rxBytes(ctx, field)
+			case "txBytes":
+				return ec.fieldContext_NetIFMetrics_txBytes(ctx, field)
+			case "rxBytesPSec":
+				return ec.fieldContext_NetIFMetrics_rxBytesPSec(ctx, field)
+			case "txBytesPSec":
+				return ec.fieldContext_NetIFMetrics_txBytesPSec(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Iface", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type NetIFMetrics", field.Name)
 		},
 	}
 	return fc, nil
@@ -2534,42 +2416,6 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(ctx context.Conte
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputNewIface(ctx context.Context, obj interface{}) (model.NewIface, error) {
-	var it model.NewIface
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"text", "userId"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "text":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("text"))
-			it.Text, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "userId":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-			it.UserID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -2578,47 +2424,47 @@ func (ec *executionContext) unmarshalInputNewIface(ctx context.Context, obj inte
 
 // region    **************************** object.gotpl ****************************
 
-var ifaceImplementors = []string{"Iface"}
+var netIFMetricsImplementors = []string{"NetIFMetrics"}
 
-func (ec *executionContext) _Iface(ctx context.Context, sel ast.SelectionSet, obj *model.Iface) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, ifaceImplementors)
+func (ec *executionContext) _NetIFMetrics(ctx context.Context, sel ast.SelectionSet, obj *model.NetIFMetrics) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, netIFMetricsImplementors)
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("Iface")
-		case "name":
+			out.Values[i] = graphql.MarshalString("NetIFMetrics")
+		case "ifname":
 
-			out.Values[i] = ec._Iface_name(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "TX_sec":
-
-			out.Values[i] = ec._Iface_TX_sec(ctx, field, obj)
+			out.Values[i] = ec._NetIFMetrics_ifname(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "RX_sec":
+		case "rxBytes":
 
-			out.Values[i] = ec._Iface_RX_sec(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "TX":
-
-			out.Values[i] = ec._Iface_TX(ctx, field, obj)
+			out.Values[i] = ec._NetIFMetrics_rxBytes(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "RX":
+		case "txBytes":
 
-			out.Values[i] = ec._Iface_RX(ctx, field, obj)
+			out.Values[i] = ec._NetIFMetrics_txBytes(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "rxBytesPSec":
+
+			out.Values[i] = ec._NetIFMetrics_rxBytesPSec(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "txBytesPSec":
+
+			out.Values[i] = ec._NetIFMetrics_txBytesPSec(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -2631,38 +2477,6 @@ func (ec *executionContext) _Iface(ctx context.Context, sel ast.SelectionSet, ob
 	if invalids > 0 {
 		return graphql.Null
 	}
-	return out
-}
-
-var mutationImplementors = []string{"Mutation"}
-
-func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, mutationImplementors)
-	ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
-		Object: "Mutation",
-	})
-
-	out := graphql.NewFieldSet(fields)
-	for i, field := range fields {
-		innerCtx := graphql.WithRootFieldContext(ctx, &graphql.RootFieldContext{
-			Object: field.Name,
-			Field:  field,
-		})
-
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Mutation")
-		case "createIface":
-
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_createIface(ctx, field)
-			})
-
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
 	return out
 }
 
@@ -2684,7 +2498,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
-		case "ifaces":
+		case "NetIFMetrics":
 			field := field
 
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -2693,7 +2507,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_ifaces(ctx, field)
+				res = ec._Query_NetIFMetrics(ctx, field)
 				return res
 			}
 
@@ -3057,11 +2871,7 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNIface2testᚋgraphᚋmodelᚐIface(ctx context.Context, sel ast.SelectionSet, v model.Iface) graphql.Marshaler {
-	return ec._Iface(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNIface2ᚕᚖtestᚋgraphᚋmodelᚐIfaceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Iface) graphql.Marshaler {
+func (ec *executionContext) marshalNNetIFMetrics2ᚕᚖtestᚋgraphᚋmodelᚐNetIFMetricsᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.NetIFMetrics) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -3085,7 +2895,7 @@ func (ec *executionContext) marshalNIface2ᚕᚖtestᚋgraphᚋmodelᚐIfaceᚄ(
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNIface2ᚖtestᚋgraphᚋmodelᚐIface(ctx, sel, v[i])
+			ret[i] = ec.marshalNNetIFMetrics2ᚖtestᚋgraphᚋmodelᚐNetIFMetrics(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -3105,19 +2915,14 @@ func (ec *executionContext) marshalNIface2ᚕᚖtestᚋgraphᚋmodelᚐIfaceᚄ(
 	return ret
 }
 
-func (ec *executionContext) marshalNIface2ᚖtestᚋgraphᚋmodelᚐIface(ctx context.Context, sel ast.SelectionSet, v *model.Iface) graphql.Marshaler {
+func (ec *executionContext) marshalNNetIFMetrics2ᚖtestᚋgraphᚋmodelᚐNetIFMetrics(ctx context.Context, sel ast.SelectionSet, v *model.NetIFMetrics) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
-	return ec._Iface(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNNewIface2testᚋgraphᚋmodelᚐNewIface(ctx context.Context, v interface{}) (model.NewIface, error) {
-	res, err := ec.unmarshalInputNewIface(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
+	return ec._NetIFMetrics(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
@@ -3127,6 +2932,21 @@ func (ec *executionContext) unmarshalNString2string(ctx context.Context, v inter
 
 func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
 	res := graphql.MarshalString(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNUint642uint64(ctx context.Context, v interface{}) (uint64, error) {
+	res, err := graphql.UnmarshalUint64(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUint642uint64(ctx context.Context, sel ast.SelectionSet, v uint64) graphql.Marshaler {
+	res := graphql.MarshalUint64(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")

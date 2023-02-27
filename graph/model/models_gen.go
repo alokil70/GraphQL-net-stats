@@ -2,18 +2,10 @@
 
 package model
 
-type Iface struct {
-	Name  string `json:"name"`
-	TxSec string `json:"TX_sec"`
-	RxSec string `json:"RX_sec"`
-	Tx    string `json:"TX"`
-	Rx    string `json:"RX"`
-}
-
-type NewIface struct {
-	Name  string `json:"name"`
-	TxSec string `json:"TX_sec"`
-	RxSec string `json:"RX_sec"`
-	Tx    string `json:"TX"`
-	Rx    string `json:"RX"`
+type NetIFMetrics struct {
+	Ifname      string `json:"ifname"`
+	RxBytes     uint64 `json:"rxBytes"`
+	TxBytes     uint64 `json:"txBytes"`
+	RxBytesPSec uint64 `json:"rxBytesPSec"`
+	TxBytesPSec uint64 `json:"txBytesPSec"`
 }
